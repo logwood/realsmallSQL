@@ -43,14 +43,6 @@ private:
     std::string link_place;//这个link_space是文件的路径，用于打开文件流。
 };
 
-class Index
-    /**
-    * @brief 这个以后在搞
-    *
-    */
-{
-
-}; 
 class DBMS
 {
 public:
