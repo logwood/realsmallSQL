@@ -1,4 +1,4 @@
-source = *.cpp
+source = B+.cpp Bplustree.cpp
 target = dlist
 
 CXX = g++

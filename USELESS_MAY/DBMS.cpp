@@ -2,12 +2,11 @@
 #include "dbms.h"
 bool DBMS::eventLoop()
 
-{
+{   
     bool end = false;
     std::string s;
     last_sql.clear();
     getline(std::cin, s);
-
     std::stringstream ss;
     try
     {
@@ -56,18 +55,35 @@ bool DBMS::eventLoop()
 };
 bool DBMS::doaParser()
 {
-    std::cout << Strs[0] << std::endl;
+    std::cout << Strs[1] << std::endl;
+    if(Strs[1]=="TABLE"&&options==CREATE)
+    {
     doCreateTable();
+    }
+    else if(options==INSERT)
+    {
+    doInsertTable();
+    }
     return true;
 }
-bool DBMS::doCreateTable()
+bool DBMS::doInsertTable()
+{
+    std::string table_palce=Strs[1];
+    if(!departend())
+    {
+        return true;
+    }
+    for(auto iter = Strs.begin(); iter != Strs.end(); std::cout << *iter.base() << std::endl, iter++)
+    {
+        
+    }
+}
+bool DBMS::departend()
 {
     if (Strs.size() == 0)
     {
         return false;
     }
-    std::vector<Typee> typ = {{"int", "", normal}};
-    Typee typee;
     std::string Table_String = *Strs.begin().base();
     Strs.erase(Strs.begin());
     int a=Strs.end().base()->size();
@@ -110,6 +126,16 @@ bool DBMS::doCreateTable()
     while (Strs[0].size() == 0)
     {
         Strs.erase(Strs.begin());
+    }
+}
+bool DBMS::doCreateTable()
+{
+    std::vector<Typee> typ = {{"int", "", normal}};
+    Typee typee;
+    bool qur=departend();
+    if(!qur)
+    {
+        return true;
     }
     std::string Restricts;
     int stage = STAGE_ONE;
@@ -209,3 +235,5 @@ int main()
     }
 }
 //CREATE TABLE SPACE(SPRING spring NOT NULL,STIR int , STSD int NOT NULL ) ; 
+//INSERT INTO TABLE_NAME VALUES('1111' , '张三' ,20 , 1 , '1111'),('1111' , '张三' ,20 , 1 , '1111'),('1111' , '张三' ,20 , 1 , '1111'),('1111' , '张三' ,20 , 1 , '1111'),('1111' , '张三' ,20 , 1 , '1111')
+//

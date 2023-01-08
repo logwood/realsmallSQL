@@ -1,9 +1,10 @@
 #include <string>
 #include <iostream>
+#include "Crone.h"
 typedef struct node
 {
     int val=-1;
-    std::string id={""};
+    std::vector<std::string> strs;
     struct node *left=nullptr;
     struct node *right=nullptr;
     struct node *parent=nullptr;
