@@ -1,7 +1,11 @@
 #ifndef CRONE_H
 #include "Crone.h"
 #endif
+#include "index.h"
 #include <iostream>
+#include <algorithm>
+#include "Bplustree/BplusFactory.h"
+#include <set>
 #define BPLUS 1
 #define AVL 0
 /**
@@ -30,7 +34,7 @@ public:
     *
     */
    {
-      std::cout << "" << std::endl;
+      //std::cout << "" << std::endl;
       File_Path = Base_Path;
       Table_is = Table_Name;
       tree_type = tree_ype;
@@ -75,6 +79,121 @@ public:
 
       return true;
    }
+   Table &InsertToPlace(std::vector<std::vector<std::string>> infos)
+   { /**
+      * @brief 用于在尾部插入数据
+      *        infos 是数据的信息。
+      *        !!!!!!!!!!!!!!所有数据，无论类型是什么，统一通过string存储。
+      */
+      auto place=infos.front();
+      if(place.capacity()!=0)
+      {
+         infos.erase(infos.begin());
+         infos.erase(infos.begin());
+         auto irf=infos;
+         irf.resize(infos[0].size());
+         for(auto& it:irf)
+         it.resize(infos.size());
+         int i=0;
+         for(auto info:infos)
+         {
+            int j=0;
+            for(auto inf:info)
+            {
+               irf[j][i]=infos[i][j];
+               j++;
+            }
+            i++;
+         }
+         i=0;
+         ReadInBinary();
+         while(Column_Info.size()>irf.size())
+            {
+               irf.emplace_back(irf.back());
+               for(auto &kk:irf.back())
+               {
+                  kk="";
+               }
+            }
+      i=0;
+      int j=0;
+      decltype(irf) irr;
+      irr.resize(irf.size());
+      for(auto pla:place){
+         for(auto Col:Column_Info)
+            {
+               if(Col.id==pla)
+               {
+                  irr[i]=irf[j];
+               }
+            i++;
+         }
+         i=0;
+         j++;
+      }
+      for(auto &arr:irr)
+      {
+         if(arr.size()==0)
+         {
+            arr.resize(place.capacity(),"NULL");            
+         }
+      }
+      auto irk=irr;
+         irk.resize(irr[0].size());
+         for(auto& it:irk)
+         it.resize(irr.size());
+         i=0;
+         for(auto info:irr)
+         {
+            int j=0;
+            for(auto ink:info)
+            {
+               irk[j][i]=irr[i][j];
+               j++;
+            }
+            i++;
+         }
+      for (auto info : irk)
+         {
+            InsertToTail(info);
+         }
+      std::vector<std::string> dec;
+      for(auto cols:Column_Info)
+      {
+         dec.emplace_back(cols.id);
+       }       
+       Index *index = new Index(File_Path,Column_Info.size(),dec);       
+       j=0;
+       for(auto ase:Column_Info)
+       {
+       if(ase.Restrict==Primary_KY)
+       {
+          break;
+       }
+          j++;
+       }   
+       if(Column_Info[j].type=="int")
+         for(auto info:irk)
+         {
+            index->avl_insert(atoi(info[j].c_str()),info);
+         }
+       index->showBtreeByLeftAndWrite();
+      }
+      else
+      {
+         infos.erase(infos.begin());
+         for (auto info : infos)
+         {
+            InsertToTail(info);
+         }    
+      } 
+      Index *ind = new Index(File_Path);    
+      ind->readInHex();
+      for(auto ase:Column_Info)
+      {
+      }         
+      return *this;
+   }
    Table &InsertToTail(std::vector<std::string> infos)
    { /**
       * @brief 用于在尾部插入数据
@@ -93,11 +212,9 @@ public:
       return *this;
    }
    Table &WriteInBinary()
-   { /**
-      * @brief 将类写到二进制文件TABLE.table
-      *        ps:如果有需要的话，可以私聊我，加入一个options，用于数据存储的方式。具体细节请看ofstream。
-      *
-      */
+   { 
+      BAddTree<int,Entry> tree(orders);
+      int nots=1;
       std::ofstream file(File_Path + "/" + Table_is, std::ios::out | std::ios::binary);
       int nums = Column_Info.size();
       int numss = Column_Info[0].Columns.size();
@@ -115,30 +232,52 @@ public:
          if (types.Restrict == Primary_KY)
          {
             primaryplace = place;
+            if(types.type_convert=="string")
+            {
+               nots=0;
+            }
          }
          place++;
          file.write((char *)&types, sizeof(types));
       }
+      int need=0;      
+      for(auto Col:Column_Info)
+      {
+         if(Col.Restrict==Primary_KY)
+         {
+            break;
+         }
+         need++;
+      }
+      int m=0;
+      File_Offset.clear();
+      
       for (auto Column_every : Column_Info)
       {
-         if (tree_type == BPLUS)
-         {
-            int i = file.tellp();
-            File_Offset.emplace_back(i);
-            std::cout << i << std::endl;
-            Column_Info[primaryplace];
-         }
+         int i = file.tellp();
+         File_Offset.emplace_back(i);
+         int j=0;
          for (auto info : Column_every.Columns)
          {
             info_Document infos;
             sprintf(infos.Info_One, "%s", info.data());
             file.write((char *)&infos, sizeof(infos));
+            if(m==0&&nots==1)
+            {
+            long k = file.tellp();
+            //std::cout << i << std::endl;
+            Entry ant(atoll(Column_Info[need].Columns[j].c_str()),k);
+            tree.insert(ant);
+            }
+            j++;
          }
+         m++;
       }
-
+      tree.tree_traversal(itf);
+      tree.searchall("Bplustree/idx/"+File_Path);
       file.close();
       return *this;
-   }
+   }   
    void ReadInBinary()
    {
       /**
@@ -150,6 +289,12 @@ public:
       info_Document info;
       std::ifstream file(File_Path + "/" + Table_is,
                          std::ios::in | std::ios::binary);
+      BAddTree<int,Entry> b(orders);
+      if(!file.is_open())
+      {
+         file.close();
+         return;
+      }
       int nums, numss;
       file.read((char *)&nums, sizeof(int));
       file.read((char *)&numss, sizeof(int));
@@ -166,24 +311,27 @@ public:
          std::string str2 = temptype.type_convert;
          Column_Info[c].type.swap(str2);
          Column_Info[c].Restrict = temptype.Restrict;
-         // std::cout << Column_Info[c].id << Column_Info[c].Restrict << Column_Info[c].type << std::endl;
       }
       Column_Info.erase(Column_Info.begin());
       Column types;
       types.id = "", types.Restrict = 0, types.type = "", types.Columns = {""};
       Column_Info.emplace_back(types);
+      std::ifstream in("Bplustree/idx/"+File_Path,std::ios::in|std::ios::binary);
+ 	   b.ReadBtree(0,in);
+      std::cout<<"read things"<<std::endl;
+      b.tree_traversal(itf);
+      File_Offset.clear();
       for (int j = 0; j < nums; j++)
       {
-         auto offset = file.tellg();
-         std::cout<<offset<<std::endl;
-         File_Offset.emplace_back(offset);
+            auto offset = file.tellg();
+            File_Offset.emplace_back(offset);
          if (tree_type == AVL)
          {
             /*insert AVL tree things*/
          }
          for (int i = 0; i < numss; i++)
          {
-            if (j == 0 && i > 0 && tree_type == BPLUS)
+            if (j == 0 && i >= 0 && tree_type == BPLUS)
             {
                auto offset = file.tellg();
             }
@@ -191,11 +339,9 @@ public:
             Column col;
             Column_Info[j].Columns.emplace_back(std::string{""});
             Column_Info[j].Columns[i] = info.Info_One;
-            std::cout << Column_Info[j].Columns[i] << std::endl;
          }
          Column_Info[j].Columns.pop_back();
          auto iter = Column_Info[j].Columns.begin();
-         // Column_Info[j].Columns.erase(iter);
       }
       Column_Info.pop_back();
    }
@@ -227,21 +373,76 @@ public:
          }
       }
    }
-   void search()
+   void delect(std::string vaild_key,int operators,std::string column_needs,std::string column_opers)
+   {
+      std::vector<int> vec=search(vaild_key,operators,column_needs,column_opers,114514);
+      std::set<int>s(vec.begin(), vec.end());
+      vec.assign(s.begin(), s.end());
+      
+      for(auto& col:Column_Info)
+      {
+         col.Columns.clear();
+      }
+      Column_Info.pop_back();
+      Column_Info.pop_back();
+      ReadInBinary();
+      for(auto ve:vec)
+      {
+         Column_Info[0].Columns[ve]="C##DBA_CONSERED";
+      }
+      //WriteInBinary();
+      decltype(Column_Info) coll;
+      coll.resize(Column_Info.size());
+      for(int i=0;i<Column_Info[0].Columns.size();i++)
+      {
+         
+         if(Column_Info[0].Columns[i]!="C##DBA_CONSERED")
+         {
+            for(int j=0;j<Column_Info.size();j++)
+            {
+               coll[j].id=Column_Info[j].id;
+               coll[j].Columns.emplace_back(Column_Info[j].Columns[i]);
+            }
+         }
+      }
+      Column_Info=coll;
+      int j=1+1;
+   }
+   std::vector<int> search(std::string vaild_key,int operators,std::string column_needs,std::string column_opers,int options)
+   {
+      tree_type=options;
+      return search(vaild_key,operators,column_needs,column_opers);
+   }
+   std::vector<int> search(std::string vaild_key,int operators,std::string column_needs,std::string column_opers)
    {
       std::vector<Column> cols;
+      std::vector<int> times;
       int i = 0;
+      int k = 0;
+      int keyis=0;
       for (auto Columns : Column_Info)
       {
          cols.push_back(Columns);
+         if(Columns.Restrict==Primary_KY&&Columns.type=="int"&&column_needs==Columns.id)
+         {
+            keyis=1;
+         }
       }
+       if(keyis=1)
+       {
+          BAddTree<int,Entry> b(orders);
+          std::ifstream in("Bplustree/idx/"+File_Path,std::ios::in|std::ios::binary);
+ 	       b.ReadBtree(0,in);
+          b.list_traversal(itfs,operators,atoll(vaild_key.c_str()));
+       }
       for (auto Columns : Column_Info)
       {
-         if (Columns.id == "books")
+         if(tree_type==114514)
+         if (!Columns.id.compare(column_opers))
          {
             for (auto colss : Columns.Columns)
             {
-               if (atoi(colss.c_str()) > 2392)
+               if (!cmp_fuc(colss,vaild_key,operators,Columns.id))
                {
                   int j = 0;
                   for (auto Colum : cols)
@@ -250,42 +451,182 @@ public:
                      Colum.Columns.erase(Colum.Columns.begin() + i);
                      cols[j] = Colum;
                      j++;
+                     times.push_back(k);
                   }
+                  i--;
                }
                i++;
+               k++;
             }
-         }
+            break;
+          }
+          else if(tree_type==AVL)
+          {
+             Index *ind =new Index(File_Path);
+             std::vector<std::vector<std::string>> inde;
+             ind->readInHex();
+             inde=ind->search(atoi(vaild_key.c_str()),2,operators);
+            if(operators==0)
+             {
+               auto indes=ind->search(114514,2,BIGGER);
+               inde.emplace_back(indes[0]);
+             }
+             std::vector<Typee> types;
+             std::vector<std::string> inds=inde.back();
+             for(auto indee:inds)
+            {
+                Typee typ;
+                typ.id=indee;
+                types.push_back(typ);
+                Table table(File_Path, Table_is, types, AVL); //这是读的实例
+                Column_Info=table.Column_Info;
+             }
+             inde.pop_back();
+             for(auto indee:inde)
+             {
+                //std::cout<<indee.size()<<std::endl;;
+                InsertToTail(indee);
+             }
+             if(column_needs.compare("*"))
+             for (auto& Columns : Column_Info)
+             {
+             if (!Columns.id.compare(column_needs))
+             {
+               Columns.type="Selected";
+             }
+             }
+             std::vector<Column> arr;
+             for(auto Columns:Column_Info)
+             {
+               if(Columns.type=="Selected")
+               {
+                  arr.emplace_back(Columns);
+               }
+             i++;
+             }
+             Column_Info=arr;
+             return times;
+          }
       }
+      Column_Info=cols;
+      i=0;
+      if(column_needs.compare("*"))
+      for (auto Columns : Column_Info)
+      {
+         if (Columns.id.compare(column_needs))
+         {
+            cols.erase(cols.begin()+i);
+            i--;
+         }
+         i++;
+      }
+      Column_Info=cols;
+      return times;
    }
 
    //--------------------------------------------------------------------
-   void showTable();
-   void printLine(std::vector<int> colMaxLength);
-   void printData(int row, std::vector<int> colMaxLength);
-   int tree_type = 0;
+   void showTable() {
+    std::vector<int> colMaxLength;
+
+    //Column_Info 就是 this.Column_Info
+    for (int i = 0; i < Column_Info.size(); ++i)
+      {
+        colMaxLength.push_back(std::max(getColMaxLength(Column_Info[i]),(int)Column_Info[i].id.size()));
+      }
+    //打印表头
+    printLine(colMaxLength);
+    printData(-1, colMaxLength);
+    printLine(colMaxLength);
+
+    //打印数据
+    for (int i = 0; i < Column_Info[0].Columns.size(); ++i)
+        printData(i, colMaxLength);
+
+    //打印表尾
+    printLine(colMaxLength);
+   }
+   int getColMaxLength(Column column) {
+   if(column.Columns.size()!=0)
+   {
+    int maxLength = column.Columns[0].size();
+    for (int i = 1; i < column.Columns.size(); ++i) {
+        if (maxLength < column.Columns[i].size()) {
+            maxLength = column.Columns[i].size();
+        }
+    }
+    return maxLength;
+   }
+}//打印边框
+void printLine(std::vector<int> colMaxLength) {
+    for (int i = 0; i < colMaxLength.size(); ++i) {
+        std::cout << "+-";
+        for (int j = 0; j < colMaxLength[i]; ++j)
+            std::cout << "-";
+        std::cout << "-";
+    }
+    std::cout << "+" << std::endl;
+}
+
+//打印数据 | 打印表头
+void printData(int row, std::vector<int> colMaxLength) {
+    int length;
+
+    for (int i = 0; i < colMaxLength.size(); ++i) {
+        std::cout << "| ";
+
+        if (row == -1) {
+            std::cout << Column_Info[i].id;
+            length = Column_Info[i].id.size();
+        } else {
+            std::cout << Column_Info[i].Columns[row];
+            length = Column_Info[i].Columns[row].size();
+        }
+        
+        for (int j = 0; j < colMaxLength[i] - length; ++j)
+            std::cout << " ";
+        std::cout << " ";
+    }
+    std::cout << "|" << std::endl;
+}
+void mian()
+{
+    std::vector<Typee> types = {{"string", "ok", normal}, {"string", "buok", normal}, {"int", "books", Primary_KY}};
+    std::vector<Typee> typ = {{"int", "", normal}};
+    Table table("stud", "stud.table", types, BPLUS); // 这是读的实例
+    table.InsertToTail({(std::string) "wng", (std::string) "table", (std::string) "7777"});
+    table.InsertToTail({(std::string) "gsang", (std::string) "hekoo", (std::string) "1329"});
+    table.InsertToTail({(std::string) "wsang", (std::string) "ettkd", (std::string) "2392"});
+    table.InsertToTail({(std::string) "wang", (std::string) "le", (std::string) "7722277"});
+    table.InsertToTail({(std::string) "wag", (std::string) "h", (std::string) "1322229"});
+    table.InsertToTail({(std::string) "w", (std::string) "kd", (std::string) "3232392"});
+    table.InsertToTail({(std::string) "sas", (std::string) "tasdsaable", (std::string) "323277"});
+    table.InsertToTail({(std::string) "asasg", (std::string) "hasdasekoo", (std::string) "12323329"});
+    table.InsertToTail({(std::string) "sadg", (std::string) "easdsattkd", (std::string) "23212192"});
+    table.InsertToTail({(std::string) "adsg", (std::string) "sadsale", (std::string) "2122277"});
+    table.InsertToTail({(std::string) "sadg", (std::string) "asdsah", (std::string) "23232229"});
+    table.InsertToTail({(std::string) "wasd", (std::string) "sadd", (std::string) "2232392"});
+    table.WriteInBinary(); // 这是写的实例。
+    Table gettable("stud", "stud.table", typ, BPLUS);
+    gettable.ReadInBinary();
+    gettable.parseBplus({140, 159, 178});
+}
    //--------------------------------------------------------------------
 private:
+   bool cmp_fuc(std::string left_value,std::string right_value,int operators,std::string type)
+   {
+      if(type.compare("int"))
+      {
+         return operators!=0?((atoll(left_value.c_str())-atoll(right_value.c_str()))*operators)>0:(left_value==right_value);
+      }
+      else
+      {
+         return !operators?(left_value.compare(right_value))*operators:(left_value==right_value);
+      }
+   }
+   int tree_type = AVL;
    std::vector<Column> Column_Info; //表的信息，包括了类型。
    std::string File_Path;           // File_Path是Database的文件路径。
    std::string Table_is;            //数据库的Table名。
    std::vector<int> File_Offset;
+   int orders=7;
 };
-void dothings()
-{
-   std::vector<Typee> types = {{"string", "ok", Primary_KY}, {"string", "buok", normal}, {"int", "books", normal}};
-   std::vector<Typee> typ = {{"int", "", normal}};
-   Table table("stud", "stud.table", types, BPLUS); //这是读的实例
-   table.InsertToTail({(std::string) "wng", (std::string) "table", (std::string) "7777"});
-   table.InsertToTail({(std::string) "gsang", (std::string) "hekoo", (std::string) "1329"});
-   table.InsertToTail({(std::string) "wsang", (std::string) "ettkd", (std::string) "2392"});
-   table.InsertToTail({(std::string) "wang", (std::string) "le", (std::string) "7722277"});
-   table.InsertToTail({(std::string) "wag", (std::string) "h", (std::string) "1322229"});
-   table.InsertToTail({(std::string) "w", (std::string) "kd", (std::string) "2323232392"});
-   // table.showTable();
-   table.WriteInBinary(); //这是写的实例。
-   Table gettable("stud", "stud.table", typ, BPLUS);
-   gettable.ReadInBinary();
-   // gettable.showTable();
-   gettable.search();
-   gettable.parseBplus({140,159,178});
-}

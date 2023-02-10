@@ -1,9 +1,6 @@
-﻿// 由于各种问题，这个table中列的数量被限制在了3个。
-
-#include <iostream>
+﻿#include <iostream>
 #include<time.h>
 #include"BAddTree.h"
-#define order 7
 using namespace BAT;
 using namespace std;
 void testBTree();//功能测试
@@ -12,13 +9,10 @@ struct Entry
 {
 public:
 	Entry() = default;
-	Entry(int k, long e) { this->k = k; this->file_offset = e; };
+	Entry(const int64_t k, long e) { this->k = k; this->file_offset = e; };
+	int Table_Size(int r){table_size=r;};
 	~Entry()=default;
-	void Table_size(int x)
-	{
-		table_size=x;
-	};
-	int key()const {//接口函数
+	int64_t key()const {//接口函数
 		return k;
 	};
 	long file_offset;
@@ -30,16 +24,49 @@ private:
 auto itf = [](deque <Entry*>&e) {
 	int _s = e.size();
 	for (int i = 0; i < _s; ++i) {
-		printf(" %d ", e[i]->key());
+		printf(" %ld ", e[i]->key());
 	}
 };
-
-int main()
+auto itfs = [](deque <Entry*>&e,int vals,int operators) {
+	int _s = e.size();
+	deque <Entry*> times;
+	for (int i = 0; i < _s; ++i) {
+		if(operators!=0?((e[i]->key()-vals)*operators>0):(e[i]->key()==vals))
+		{
+			int keyis=e[i]->key();
+			Entry* sa=new Entry(keyis,e[i]->file_offset);
+			times.push_back(sa);
+		}
+	}
+	return times;
+};
+class BTreeForUse
 {
-	srand(time(NULL));
-	testBTree();
-}
+	BTreeForUse(std::string file)
+	{
+		path="idx/"+file;
+	}
+	void ReadBTree()
+	{
+		
+	}
+	void BTreeAdd(std::vector<Entry> names)
+	{
+
+	}
+	void BTreeAddOne(std::vector<Entry> names)
+	{
+		
+	}
+private:
+	std::string path;
+};
+
+
+
 void testBTree() {
+	srand(time(NULL));
+	int order =7;
 	BAddTree<int,Entry>tree(order);
 	int low, up = 0;
 	do {
@@ -52,29 +79,29 @@ void testBTree() {
 	up = 200; low = 1;
 	vector<Entry>num;
 	for (int i = low; i < up; ++i) {
-		num.insert(num.end(),Entry(rand()*rand()*rand()%100000000,(float)rand()/rand()));
+		num.insert(num.end(),Entry(rand()*rand()*rand()%10000,(float)rand()/rand()));
 	}
 	vector<Entry>r;
-	cout << "insert values the fllowing:\n" << endl;
+	//cout << "insert values the fllowing:\n" << endl;
 	while (!num.empty())
 	{
 		int s = rand() % (num.size());
 		auto it = num.begin();
 		advance(it, s);
 
-		cout << num[s].key() << " ";
+		//cout << num[s].key() << " ";
 		bool ok=tree.insert(num[s]);
 		if(ok){
 		r.insert(r.end(), num[s]);
 		}
 		else {
-			cout << "\n\n\n inserting the entry had failed:" << it->key() << "\n\n";
+			//cout << "\n\n\n inserting the entry had failed:" << it->key() << "\n\n";
 		}
 		num.erase(it);
 	}
 	cout << "\ntree size:\n" << tree.size() << endl;
 	cout << "start  traversal:\n";
- 	tree.list_traversal(itf);
+ 	tree.tree_traversal(itf);
 	cout << endl;
 	cout << "remove randomly:\n\t";
 	int n = 0;
@@ -192,13 +219,17 @@ void testBTree() {
 		}
 		cout << endl;
 		cout << "now tree size:\n" << tree.size() << endl;
-		cout << "now i traversal:\n";
 		tree.tree_traversal(itf);
-		tree.searchall();
+		cout << "now i traversal:\n";
+		tree.list_traversal(itfs,0,23200321);
+		cout << "end" << endl;
 		cout << endl;
-	}
-	BAddTree<int,Entry>ReadTree(order);
+ 	}
+ 	BAddTree<int,Entry>ReadTree(order);
 	std::string name ="name";
-	std::ifstream in(name,std::ios::in|std::ios::binary);
-	ReadTree.ReadBtree(0,in);
+	tree.searchall(name);
+ 	std::ifstream in(name,std::ios::in|std::ios::binary);
+ 	ReadTree.ReadBtree(0,in);
+	cout << "now tree size is:\n" << tree.size() << endl;
+	ReadTree.list_traversal(itfs,0,232003212);
 }

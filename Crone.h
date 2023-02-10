@@ -8,6 +8,8 @@
 #define Primary_KY 1
 #define Foreign_KY 2
 #define NOT_NULL 3
+#define BIGGER 1
+#define SMALLER -1
 using value_type = int; //类型别名
 struct Typee
 /**
@@ -50,6 +52,8 @@ public:
     DBMS(){
 
     };
+    void select(std::string file,int (*cmp)(std::string before),std::string typee);
+    //select file 存入表名称，cmp作为一个比较函数，判断他是否满足where的要求，而最后的typee作为需要的所有行的行数
     int getRestrict(std::vector<std::string>::iterator);
     bool doCreateTable();
     bool eventLoop(); //事件循环，用于对输入的事件进行处理。可以考虑使用输入输出流。

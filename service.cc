@@ -9,6 +9,7 @@
 #include <string.h>
 #include <sstream>
 #include <mutex>
+#include <map>
 #include "Table.h"
 #define PORT 9000
 class dbms_far
@@ -24,18 +25,32 @@ public:
 
         if (operation == "insert")
         {
-            sring << recvbuf;
-            sring >> tablename; //分离出tablename，再将字符串传给createtable
-            insert(tablename, sring.str(), tab_path);
+
         }
         else if (operation == "create")
         {
-            sring << recvbuf;
-            sring >> tablename; //分离出tablename，再将字符串传给createtable
-            create_table(tablename, sring.str());
-        }
-        else
+
+        }        
+        else if(operation == "select")
         {
+            const std::map<std::string,int> LocalMap={{">",1},{"<",-1},{"=",0}};
+            std::string column; //记录被选择的column名称，为*代表全选
+            std::string word; //保存流读取的当前字符串
+            std::vector<std::string> cond;//存储条件操作所用字符串，cond(0)为匹配列名，cond(1)为匹配符号，cond(2)匹配常数值
+
+            int i = 1; //记录当前为第几个字符串
+            while(sring >> word){
+                if(i == 1)column = word;
+                else if(i == 3)tablename = word;
+                else if(i >= 5 && i <= 7)cond.push_back(word);
+                ++ i ;
+            }
+            int need=LocalMap.at(cond[1]);
+            std::vector<Typee> typ = {{"int", "", normal}};
+            Table gettable(tablename, tablename+".table", typ, AVL);
+            gettable.ReadInBinary();
+            gettable.search(cond[2],need,column,cond[0]);
+            gettable.showTable();
         }
 
     }; 
@@ -133,7 +148,7 @@ static void* client_thread(void *arg)
         dbms_far dms;
         if(dms.eventLoop(recvbuf))     
         {
-
+            
         }   
         mut.unlock();
     }
@@ -198,5 +213,8 @@ int do_do()
 }
 int main()
 {
-    do_do();
+    int want_farconn=0;
+    std::cin>>want_farconn;
+    if(want_farconn)
+        do_do();
 }

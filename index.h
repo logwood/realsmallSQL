@@ -8,6 +8,12 @@ public:
         path=paths;
         root = nullptr;
     }
+    Index(std::string paths,int length,std::vector<std::string> typee)
+    {
+        path=paths;
+        types=typee;
+        root = nullptr;
+    }
     ~Index()
     {
     }
@@ -34,6 +40,8 @@ public:
 
     void showBtreeByLeftAndWrite()
     {
+        avl_insert(INT32_MAX/2,types);
+        avl_insert(INT32_MIN/2,types);
         std::ofstream fie("idx/"+path,std::ios::binary);
         fie.close();
         std::ofstream file("idx/"+path,std::ios::binary|std::ios::app);
@@ -42,11 +50,11 @@ public:
         file.close();
         showBtreeByLeftAndWrite_real(this->root);
     }
-    std::vector<std::vector<std::string>> search(int key,int type)
+    std::vector<std::vector<std::string>> search(int key,int type,int operators)
     {
-        return searchall(key,type,root);
+        return searchall(key,type,root,operators);
     }    
-    std::vector<std::vector<std::string>> searchall(int key,int type,node_t* root)
+    std::vector<std::vector<std::string>> searchall(int key,int type,node_t* root,int operators)
     {
         std::vector<std::vector<std::string>> ptrs;
         if(root==nullptr)
@@ -54,15 +62,16 @@ public:
             return ptrs;
         }
         else{
-            if(root->val>key){
+            
+            if(operators!=0?((root->val-key)*operators)>0:(root->val==key)){
                 ptrs.emplace_back(root->strs);
             }
             else{
 
             }
-            auto ptr=searchall(key,type,root->left);
+            auto ptr=searchall(key,type,root->left,operators);
             ptrs.insert(ptrs.end(),ptr.begin(),ptr.end());
-            ptr=searchall(key,type,root->right);
+            ptr=searchall(key,type,root->right,operators);
             ptrs.insert(ptrs.end(),ptr.begin(),ptr.end());
         }
         return ptrs;
@@ -103,7 +112,7 @@ public:
                 }
             }
         if(isgood==true){
-        int size;
+        int size=0;
             file.read((char*)&size,sizeof(int));
             heights.emplace_back(size);
             file.read((char*)&size,sizeof(int));
@@ -112,10 +121,26 @@ public:
         i++;
         }
        root=saveiterator(root,infos,heights,vals);
-       int j=0;
     }
-
+    int test_func()
+    {
+      node_t *root;
+      Index *index = new Index("stud",3,{{"a","b","c"}});
+      index->avl_insert(10, {{"10", "helex", "hllx"}});
+      index->avl_insert(25, {{"25", "helex", "hllx"}});
+      index->avl_insert(8, {{"8", "fa", "hllx"}});
+      index->avl_insert(24, {{"24", "fa", "hllx"}});
+      index->avl_insert(30, {{"30", "ssds", "hllx"}});
+      index->avl_insert(29, {{"29", "hkjdsd", "hllx"}});
+      index->avl_delete(24);
+      index->showBtreeByLeftAndWrite();
+    //   Index *ind =new Index("person");
+    //   ind->readInHex();
+    //   ind->avl_insert(24, {{"24", "fa", "hllx"}});
+    //   auto inde=ind->search(10,2,BIGGER);
+    }
 private:
+    std::vector<std::string> types;
     node_t *root;
     std::string path="";
     void upgrade(node_t *root)
@@ -235,7 +260,7 @@ private:
             node->left->parent=node;
             node->right->parent=node;
     }
-       node->left= saveiterator(node->left,infos,height,vals);
+      node->left= saveiterator(node->left,infos,height,vals);
       node->right= saveiterator(node->right,infos,height,vals);
       return node;
     }
@@ -266,7 +291,6 @@ private:
         size=root->val;
             file.write((char*)&size,sizeof(int));
         file.close();
-        std::cout << root->val << root->strs[0] << std::endl;
         }
         showBtreeByLeftAndWrite_real(root->left);
         showBtreeByLeftAndWrite_real(root->right);
@@ -329,12 +353,6 @@ private:
 
                 if (root->left->height > root->right->height)
                 {
-                    // 如果root的左子树比右子树高；
-                    // 则找出root的左子树中的最大节点
-                    //   将该最大节点的值赋值给root
-                    //   删除该最大节点
-                    // 这类似于用root的左子树中最大节点做root的替身
-                    // 删除root的左子树中最大节点之后，AVL树仍然是平衡的
                     node_t *max = getMaxNum(root->left);
                     root->val = max->val;
                     root->strs = max->strs;
@@ -342,12 +360,6 @@ private:
                 }
                 else
                 {
-                    // 如果root的左子树比右子树低；
-                    // 则找出root的左子树中的最小节点
-                    //   将该最小节点的值赋值给root
-                    //   删除该最小节点
-                    // 这类似于用root的右子树中最小节点做root的替身
-                    // 删除root的左子树中最小节点之后，AVL树仍然是平衡的
                     node_t *min = getMinNum(root->right);
                     root->val = min->val;
                     root->strs = min->strs;
@@ -357,13 +369,9 @@ private:
 
             else
             {
-                //这种情况为左孩子为空右孩子不为空、或者右孩子为空左孩子不为空、左右孩子都为空时的处理方法
-                //直接通过一个三目运算，即可完美解决
                 node_t *temp = root;
 
                 root = root->left ? root->left : root->right;
-
-                // destroy(temp);
             }
         }
 
@@ -371,7 +379,7 @@ private:
     }
     node_t *avl_insert_real(int val, node_t *root, std::vector<std::string> const strings)
     {
-        if (root == nullptr) //再加入val之前，该树为空
+        if (root == nullptr)
         {
             root = new node_t();
             root->left = root->right = root->parent = nullptr;
@@ -382,7 +390,7 @@ private:
         }
         else if (val <= root->val)
         {
-            root->left = avl_insert_real(val, root->left, strings); //通过嵌套函数完成了插入了
+            root->left = avl_insert_real(val, root->left, strings);
             int lh, rh;
             lh = root->left->height; //因为val比root->val小，所以左节点不可能为空
             rh = root->right ? root->right->height : 0;
@@ -421,20 +429,3 @@ private:
         return root;
     }
 };
- int main()
- {
-      node_t *root;
-      Index *index = new Index("person");
-      index->avl_insert(10, {{"hello", "helex", "hllx"}});
-      index->avl_insert(25, {{"hello", "helex", "hllx"}});
-      index->avl_insert(8, {{"hello", "fa", "hllx"}});
-      index->avl_insert(24, {{"sdkfdsjkfjksdds", "fa", "hllx"}});
-      index->avl_insert(30, {{"fsdljdf", "ssds", "hllx"}});
-      index->avl_insert(29, {{"dfkdsjkflsd", "hkjdsd", "hllx"}});
-      index->avl_delete(24);
-      index->showBtreeByLeftAndWrite();
-      Index *ind =new Index("person");
-      ind->readInHex();
-      ind->avl_insert(24, {{"sdkfdsjkfjksdds", "fa", "hllx"}});
-      auto inde=ind->search(10,2);
- }

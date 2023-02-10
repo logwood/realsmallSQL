@@ -33,7 +33,7 @@ namespace BAT {
 
 			//操作接口
 		virtual BAddTreeLeafNode<K,E>*  search(E const&);//查找
-		virtual BAddTreeLeafNode<K,E>*  searchall();//查找
+		virtual BAddTreeLeafNode<K,E>*  searchall(std::string );//查找
 		virtual void saveinfile(BAddTreeLeafNode<K, E>*,std::string );//查找
 		virtual void traverse(BAddTreeLeafNode<K, E>*);
 		virtual void traversenew(BAddTreeLeafNode<K, E>*);
@@ -41,9 +41,9 @@ namespace BAT {
 		virtual bool insert(E const&);//插入
 		virtual bool remove(E const&);//删除
 		template<typename Visist>
-		void list_traversal(Visist );//遍历
-		template<typename Visist>
-		void tree_traversal(Visist );//树上的遍历	
+		void list_traversal(Visist ,int,int);//遍历
+		template<typename Visit>
+		void tree_traversal(Visit );//树上的遍历	
 	protected:
 		BAddTree();//可继承
 		void solveOverFlow(BAddTreeLeafNode<K, E>*);//解决插入上溢现象 参数为节点
@@ -151,10 +151,10 @@ namespace BAT {
 			int _s = v->key.size();
 			int i = 0;
 			if(v->isLeaf())
-			for (; i < _s; ++i) {
+			for (; i < _s+1; ++i) {
 				if(v->key.size()>i)
 				{
-					std::cout<<v->key[i]<<' '<<std::endl;
+					//std::cout<<v->key[i]<<' '<<std::endl;
 					if(v->offset>offset)
 					{
 						v->offset=offset++;
@@ -167,7 +167,7 @@ namespace BAT {
 				for (; i < _s+1; ++i) {
 				if(v->key.size()>i)
 				{
-				std::cout<<v->key[i]<<' '<<std::endl;
+				//std::cout<<v->key[i]<<' '<<std::endl;
 				if(v->offset>offset)
 					{
 						v->offset=offset++;
@@ -184,7 +184,7 @@ namespace BAT {
 			int _s = v->key.size();
 			int i = 0;
 			if(v->isLeaf())
-			for (; i < _s; ++i) {
+			for (; i < _s+1; ++i) {
 				if(v->key.size()>i)
 				{
 					if(!v->isLeaf())
@@ -217,19 +217,12 @@ namespace BAT {
 		int _s = v->key.size();
 		int i = 0;
 		if(!v->isLeaf())
-			for (; i < _s; ++i) {
-				write_for_binary write;
-				std::copy(v->key.begin(), v->key.end(), write.key);
-				write.isleaf=0;
-				std::copy(v->childoffset.begin(), v->childoffset.begin()+v->key.size()+1, write.childoffset);
-				std::ofstream out("name",std::ios::out|std::ios::binary|std::ios::app);
-				out.write((char *)&write, sizeof(write));
-				out.close();
+			for (; i < _s+1; ++i) {
 				if(v->child[i]!=nullptr)
 				saveinfile(static_cast<BAddTreeLeafNode<K, E>*>(v->child[i]),name);
 			}
 			else{
-				for (; i < _s+1; ++i) {
+				for (; i < _s; ++i) {
 				write_for_binary write;
 				std::copy(v->key.begin(), v->key.end(), write.key);
 				write.isleaf=1;
@@ -239,7 +232,7 @@ namespace BAT {
 					write.offset[c]=dec[c]->file_offset;
 				}
 				std::copy(v->childoffset.begin(), v->childoffset.end(), write.childoffset);
-				std::ofstream out("name",std::ios::out|std::ios::binary|std::ios::app);
+				std::ofstream out(name,std::ios::out|std::ios::binary|std::ios::app);
 				out.write((char *)&write, sizeof(write));
 				out.close();
 				if(v->child[i]!=nullptr)
@@ -248,15 +241,14 @@ namespace BAT {
 			}
 	}
 	template<typename K, typename E>
-	inline BAddTreeLeafNode<K, E>* BAddTree<K, E>::searchall()
+	inline BAddTreeLeafNode<K, E>* BAddTree<K, E>::searchall(std::string name)
 	{
 		BAddTreeLeafNode<K, E>*v = static_cast<BAddTreeLeafNode<K, E>*>(this->m_root);//c++式静态转换
 		traverse(v);
 		traversenew(v);
-		std::ofstream outs("name",std::ios::out|std::ios::binary);
+		std::ofstream outs(name,std::ios::out|std::ios::binary);
 		outs.close();
-		saveinfile(v,std::string("name"));
-		//std::cout<<"success"<<std::endl;
+		saveinfile(v,std::string(name));
 		return v;
 	}
 	template<typename K, typename E>
@@ -324,13 +316,15 @@ namespace BAT {
 
 	template<typename K, typename E>
 	template<typename Visist>
-	inline void BAddTree<K, E>::list_traversal(Visist visit)
+	inline void BAddTree<K, E>::list_traversal(Visist visit,int operators,int vals)
 	{
 		BAddTreeLeafNode<K, E>*p = m_header;
 		while ((p=p->next) != m_trail) {
-			visit(p->e);
+			auto penis=visit(p->e,vals,operators);
+			int i=1+1;
+			//////really need to continue
 		}
-	}
+	}	
 	template<typename K, typename E>
 	template<typename Visist>
 	inline void BAddTree<K, E>::tree_traversal(Visist visit)

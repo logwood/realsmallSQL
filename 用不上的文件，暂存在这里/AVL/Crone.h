@@ -8,6 +8,8 @@
 #define Primary_KY 1
 #define Foreign_KY 2
 #define NOT_NULL 3
+#define BIGGER 1
+#define SMALLER -1
 using value_type = int; //类型别名
 struct Typee
 /**
