@@ -3,7 +3,10 @@
 #include<string.h>
 #include<vector>
 #include<map>
+#include <sys/stat.h>
 #include "CreateTable.h"
+
+std::string oral_path="stud";
 //table.h的191行继续进行，解决insert问题
 //解决delete问题
 //解决select问题
@@ -14,7 +17,8 @@ int main()
         //select books from stud where books > 7777
         //insert into stud ( buok , books ) values ( jack , 25 ) , ( back , 28 ) , ( hek , 24 )
         //select books from stud where books = 25
-        std::string recvbuf = "delete from stud where books > 77777";
+        //delete from stud where books > 77777
+        std::string recvbuf = "drop table Person";
         std::string operation;//操作名称
         std::string tablename="stud";
         std::stringstream sring(recvbuf);//输入流
@@ -75,25 +79,35 @@ int main()
                     }
                 }
             std::vector<Typee> typ = {{"int", "", normal}};
-            Table gettable(tablename, tablename+".table", typ, BPLUS);
+            Table gettable(oral_path, tablename+".table", typ, BPLUS);
             gettable.InsertToPlace(places);
             gettable.showTable();
         }
         else if (operation == "create")
         {
             sring << recvbuf;
-            sring >> tablename; //分离出tablename，再将字符串传给createtable
-            std::vector<Typee> cirr;
-            cirr=create_table(recvbuf,cirr);
-            Table gettable(tablename,tablename+".table",cirr,BPLUS);
-            gettable.showTable();
-            std::vector<std::string> typee;
-            for(auto cir:cirr)
+            sring >> operation;
+            if(!operation.compare("table"))
             {
-                typee.push_back(cir.id);
+                sring >> tablename; //分离出tablename，再将字符串传给createtable
+                std::vector<Typee> cirr;
+                cirr=create_table(recvbuf,cirr);
+                Table gettable(oral_path,tablename+".table",cirr,BPLUS);
+                gettable.showTable();
+                std::vector<std::string> typee;
+                for(auto cir:cirr)
+                {
+                    typee.push_back(cir.id);
+                }
+                Index *index = new Index(tablename,3,typee);
+                index->showBtreeByLeftAndWrite();
+                gettable.WriteInBinary();
             }
-            Index *index = new Index(tablename,3,typee);
-            index->showBtreeByLeftAndWrite();
+            else
+            {
+                sring>>tablename;
+                mkdir(tablename.c_str(),0777);
+            }
         }
         else if(operation == "select")
         {
@@ -111,9 +125,9 @@ int main()
             }
             int need=LocalMap.at(cond[1]);
             std::vector<Typee> typ = {{"int", "", normal}};
-            Table gettable(tablename, tablename+".table", typ, AVL);
+            Table gettable(oral_path, tablename+".table", typ, AVL);
             gettable.ReadInBinary();
-            gettable.search(cond[2],need,column,cond[0]);
+            if(gettable.search(cond[2],need,column,cond[0]).size()!=0)
             gettable.showTable();
         }        
         else if(operation == "delete")
@@ -132,10 +146,27 @@ int main()
             }
             int need=LocalMap.at(cond[1]);
             std::vector<Typee> typ = {{"int", "", normal}};
-            Table gettable(tablename, tablename+".table", typ, AVL);
+            Table gettable(oral_path, tablename+".table", typ, AVL);
             gettable.ReadInBinary();
             gettable.delect(cond[2],need,column,cond[0]);
             gettable.showTable();
+        }
+        else if(operation == "use")
+        {
+            sring >>oral_path;
+        }
+        else if(operation == "drop")
+        {
+            sring >> operation;
+            sring >>tablename;
+            if(operation == "table")
+            {
+                remove_file(oral_path,tablename);
+            }
+            else
+            {
+                remove_files("./"+tablename);
+            }
         }
         return 0;
     }

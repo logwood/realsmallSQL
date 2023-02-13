@@ -41,7 +41,7 @@ namespace BAT {
 		virtual bool insert(E const&);//插入
 		virtual bool remove(E const&);//删除
 		template<typename Visist>
-		void list_traversal(Visist ,int,int);//遍历
+		std::deque<long> list_traversal(Visist ,int,int);//遍历
 		template<typename Visit>
 		void tree_traversal(Visit );//树上的遍历	
 	protected:
@@ -316,14 +316,16 @@ namespace BAT {
 
 	template<typename K, typename E>
 	template<typename Visist>
-	inline void BAddTree<K, E>::list_traversal(Visist visit,int operators,int vals)
+	inline std::deque<long> BAddTree<K, E>::list_traversal(Visist visit,int operators,int vals)
 	{
 		BAddTreeLeafNode<K, E>*p = m_header;
+		std::deque<long> peni;
 		while ((p=p->next) != m_trail) {
-			auto penis=visit(p->e,vals,operators);
-			int i=1+1;
-			//////really need to continue
+			std::deque<long> peanutbutter;
+			peanutbutter=visit(p->e,vals,operators);
+			peni.insert(peni.end(), peanutbutter.begin(), peanutbutter.end());
 		}
+		return peni;
 	}	
 	template<typename K, typename E>
 	template<typename Visist>
@@ -333,7 +335,7 @@ namespace BAT {
 		while ((p=p->next) != m_trail) {
 			visit(p->e);
 			
-			std::cout<<"|"<<std::endl;
+			//std::cout<<"|"<<std::endl;
 		}
 	}
 	template<typename K, typename E>

@@ -9,7 +9,7 @@
 #define BPLUS 1
 #define AVL 0
 /**
- * @brief 注意 type_Document 和 info_Document都是用于读写的函数，这个如果想要了解的话找我私聊。
+ * @brief 注意 type_Document 和 info_Document都是用于读写的函数。
  *
  */
 struct type_Document
@@ -30,7 +30,7 @@ public:
     * @brief 这个是初始化函数，可以通过这里创建一个Table类。
     *     Base_Path 数据库的路径
     *     Table_Name 表的名字。
-    *     类型的名字。   such_as:string,int,class,可以看我输入的样例。
+    *     类型的名字。   such_as:string,int,class,可以看输入的样例。
     *
     */
    {
@@ -52,7 +52,7 @@ public:
    bool CheckRightness(std::vector<std::string> &infos)
    {
       /**
-       * @brief 判断输入逻辑正误的函数，可以不管
+       * @brief 判断输入逻辑正误的函数
        *
        */
       try
@@ -135,7 +135,7 @@ public:
       {
          if(arr.size()==0)
          {
-            arr.resize(place.capacity(),"NULL");            
+            arr.resize(Column_Info.size(),"NULL");            
          }
       }
       auto irk=irr;
@@ -157,27 +157,22 @@ public:
          {
             InsertToTail(info);
          }
-      std::vector<std::string> dec;
-      for(auto cols:Column_Info)
-      {
-         dec.emplace_back(cols.id);
-       }       
-       Index *index = new Index(File_Path,Column_Info.size(),dec);       
-       j=0;
-       for(auto ase:Column_Info)
-       {
-       if(ase.Restrict==Primary_KY)
-       {
-          break;
-       }
-          j++;
-       }   
-       if(Column_Info[j].type=="int")
-         for(auto info:irk)
-         {
-            index->avl_insert(atoi(info[j].c_str()),info);
-         }
-       index->showBtreeByLeftAndWrite();
+      //  Index *index = new Index(File_Path,Column_Info.size(),dec);       
+      //  j=0;
+      //  for(auto ase:Column_Info)
+      //  {
+      //  if(ase.Restrict==Primary_KY)
+      //  {
+      //     break;
+      //  }
+      //     j++;
+      //  }   
+      //  if(Column_Info[j].type=="int")
+      //    for(auto info:irk)
+      //    {
+      //       index->avl_insert(atoi(info[j].c_str()),info);
+      //    }
+      //  index->showBtreeByLeftAndWrite();
       }
       else
       {
@@ -186,12 +181,8 @@ public:
          {
             InsertToTail(info);
          }    
-      } 
-      Index *ind = new Index(File_Path);    
-      ind->readInHex();
-      for(auto ase:Column_Info)
-      {
-      }         
+      }
+      WriteInBinary();          
       return *this;
    }
    Table &InsertToTail(std::vector<std::string> infos)
@@ -273,8 +264,27 @@ public:
          }
          m++;
       }
-      tree.tree_traversal(itf);
-      tree.searchall("Bplustree/idx/"+File_Path);
+      if(nots==1)
+      {
+      tree.searchall("Bplustree/idx/"+ Table_is);      
+      std::vector<std::string> dec;
+      for(auto cols:Column_Info)
+      {
+         dec.emplace_back(cols.id);
+      }       
+      Index *index = new Index(Table_is,Column_Info.size(),dec);    
+      std::vector<std::string> decc;
+      for(int i=0;i<Column_Info[0].Columns.size();i++)
+      {
+         for(auto cols:Column_Info)
+         {
+         decc.emplace_back(cols.Columns[i]);
+         }
+         index->avl_insert(atoi(Column_Info[need].Columns[i].c_str()),decc);
+      }
+      index->showBtreeByLeftAndWrite();
+      int i=1+1;
+      }
       file.close();
       return *this;
    }   
@@ -282,7 +292,7 @@ public:
    {
       /**
        * @brief 将二进制文件TABLE_NAME.table读出
-       *        ps:如果有需要的话，可以私聊我，加入一个options，用于数据存储的方式。具体细节请看ofstream。
+       *        
        *
        */
       type_Document temptype;
@@ -316,10 +326,11 @@ public:
       Column types;
       types.id = "", types.Restrict = 0, types.type = "", types.Columns = {""};
       Column_Info.emplace_back(types);
-      std::ifstream in("Bplustree/idx/"+File_Path,std::ios::in|std::ios::binary);
- 	   b.ReadBtree(0,in);
-      std::cout<<"read things"<<std::endl;
-      b.tree_traversal(itf);
+      std::ifstream in("Bplustree/idx/"+Table_is,std::ios::in|std::ios::binary);
+      // if(!in.eof())
+ 	   // b.ReadBtree(0,in);
+      // std::cout<<"read things"<<std::endl;
+      // b.tree_traversal(itf);
       File_Offset.clear();
       for (int j = 0; j < nums; j++)
       {
@@ -331,9 +342,10 @@ public:
          }
          for (int i = 0; i < numss; i++)
          {
-            if (j == 0 && i >= 0 && tree_type == BPLUS)
+            if (j == 0 && i >= 0 )
             {
                auto offset = file.tellg();
+               //std::cout <<offset<<std::endl;
             }
             file.read((char *)&info, sizeof(info));
             Column col;
@@ -349,18 +361,32 @@ public:
    {
       this->~Table();
    }
-   void parseBplus(std::vector<int> places)
+   void parseBplus(std::deque<long> places,int options)
    {
+      int i=0;
       info_Document info;
       std::ifstream file(File_Path + "/" + Table_is, std::ios::in | std::ios::binary);
+      auto ref=*this;
+      Column_Info.clear();
       while (places.size())
       {
-         file.seekg(*places.begin().base());
+         file.seekg(*places.begin()-sizeof(info));
          places.erase(places.begin());
          int j=0;
+         std::vector<std::string> acc;
+         if(i==0)
+         for(auto COL:ref.Column_Info)
+         {
+            Column_Info.emplace_back();
+            Column_Info[i].id=COL.id;
+            Column_Info[i].Restrict=COL.Restrict;
+            Column_Info[i].type=COL.type;
+            i++;
+         }
          while (j!=File_Offset.size())
          {
             file.read((char*)&info,sizeof(info));
+            acc.emplace_back(info.Info_One);
             if(j!=0)
             {
             file.seekg(File_Offset[j]-File_Offset[j-1]-sizeof(info)+file.tellg());
@@ -371,7 +397,10 @@ public:
             }
             j++;
          }
+         InsertToTail(acc);
       }
+      showTable();
+      Column_Info=ref.Column_Info;
    }
    void delect(std::string vaild_key,int operators,std::string column_needs,std::string column_opers)
    {
@@ -396,7 +425,7 @@ public:
       for(int i=0;i<Column_Info[0].Columns.size();i++)
       {
          
-         if(Column_Info[0].Columns[i]!="C##DBA_CONSERED")
+         if(Column_Info[0].Columns[i].compare("C##DBA_CONSERED"))
          {
             for(int j=0;j<Column_Info.size();j++)
             {
@@ -405,7 +434,16 @@ public:
             }
          }
       }
+      int i=0;
+      for(auto Cols:Column_Info)
+      {
+         coll[i].Restrict=Cols.Restrict;
+         coll[i].id=Cols.id;
+         coll[i].type=Cols.type;
+         i++;
+      }
       Column_Info=coll;
+      WriteInBinary();
       int j=1+1;
    }
    std::vector<int> search(std::string vaild_key,int operators,std::string column_needs,std::string column_opers,int options)
@@ -431,13 +469,22 @@ public:
        if(keyis=1)
        {
           BAddTree<int,Entry> b(orders);
-          std::ifstream in("Bplustree/idx/"+File_Path,std::ios::in|std::ios::binary);
+          std::ifstream in("Bplustree/idx/"+Table_is,std::ios::in|std::ios::binary);
+          if(in.is_open())
+          {
+          if(tree_type!=114514)
+          {
  	       b.ReadBtree(0,in);
-          b.list_traversal(itfs,operators,atoll(vaild_key.c_str()));
+          deque<long> ant=b.list_traversal(itfs,operators,atoll(vaild_key.c_str()));
+          std::ifstream input(File_Path+"/"+Table_is,std::ios::in|std::ios::binary);
+          parseBplus(ant,tree_type);
+          return {};
+          }
+          }
        }
       for (auto Columns : Column_Info)
-      {
-         if(tree_type==114514)
+      {  
+         if(tree_type!=AVL)
          if (!Columns.id.compare(column_opers))
          {
             for (auto colss : Columns.Columns)
@@ -462,11 +509,16 @@ public:
           }
           else if(tree_type==AVL)
           {
-             Index *ind =new Index(File_Path);
+             Index *ind =new Index(Table_is);
              std::vector<std::vector<std::string>> inde;
+             if(inde.empty())
+             {
+               std::cout<<"OOPS,NO This file"<<std::endl;
+               return {};
+             }
              ind->readInHex();
              inde=ind->search(atoi(vaild_key.c_str()),2,operators);
-            if(operators==0)
+             if(operators==0)
              {
                auto indes=ind->search(114514,2,BIGGER);
                inde.emplace_back(indes[0]);
@@ -588,7 +640,7 @@ void printData(int row, std::vector<int> colMaxLength) {
     }
     std::cout << "|" << std::endl;
 }
-void mian()
+void mian()//测试样例
 {
     std::vector<Typee> types = {{"string", "ok", normal}, {"string", "buok", normal}, {"int", "books", Primary_KY}};
     std::vector<Typee> typ = {{"int", "", normal}};
@@ -608,7 +660,7 @@ void mian()
     table.WriteInBinary(); // 这是写的实例。
     Table gettable("stud", "stud.table", typ, BPLUS);
     gettable.ReadInBinary();
-    gettable.parseBplus({140, 159, 178});
+    gettable.parseBplus({140, 159, 178},114514);
 }
    //--------------------------------------------------------------------
 private:

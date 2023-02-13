@@ -24,18 +24,17 @@ private:
 auto itf = [](deque <Entry*>&e) {
 	int _s = e.size();
 	for (int i = 0; i < _s; ++i) {
-		printf(" %ld ", e[i]->key());
+		//printf(" %ld ", e[i]->key());
 	}
 };
 auto itfs = [](deque <Entry*>&e,int vals,int operators) {
 	int _s = e.size();
-	deque <Entry*> times;
+	deque <long> times;
 	for (int i = 0; i < _s; ++i) {
 		if(operators!=0?((e[i]->key()-vals)*operators>0):(e[i]->key()==vals))
 		{
-			int keyis=e[i]->key();
-			Entry* sa=new Entry(keyis,e[i]->file_offset);
-			times.push_back(sa);
+			long keyis=e[i]->file_offset;
+			times.push_back(keyis);
 		}
 	}
 	return times;

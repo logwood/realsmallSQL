@@ -1,7 +1,7 @@
-source = insert.cpp CreateTable.cpp
-target = dlist
+source = service.cc
+target = realsmallSQL
 
-CXX = g++-12
+CXX = g++
 CXXFLAG = -Wall -g -std=c++20 -fsanitize=address
 
 LIB =

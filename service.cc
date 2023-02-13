@@ -10,27 +10,112 @@
 #include <sstream>
 #include <mutex>
 #include <map>
-#include "Table.h"
-#define PORT 9000
+#include "delete_file.h"
+#include <sys/stat.h>
+#include "CreateTable.h"
+#define PORT 12346
+int nums=0;
 class dbms_far
 {
 public:
-    bool eventLoop(std::string recvbuf)
+    bool eventLoop(std::string& recvbuf)
     {
-        std::string operation;
-        std::string tablename;
-        std::stringstream sring;
-        sring << recvbuf;
+        //create table Persons ( Id_P int primary, LastName string , FirstName string , Address string , City string ) 
+        //select books from stud where books > 7777
+        //insert into stud ( buok , books ) values ( jack , 25 ) , ( back , 28 ) , ( hek , 24 )
+        //select books from stud where books = 25
+        //delete from stud where books > 77777
+        //std::string recvbuf = "drop table Person";
+        std::string operation;//操作名称
+        std::string tablename="stud";
+        std::stringstream sring(recvbuf);//输入流
         sring >> operation;
-
         if (operation == "insert")
         {
-
+            std::vector<std::vector<std::string>> places;
+            sring >> operation;
+            if(operation=="into")
+            {
+                sring >> tablename;
+            }
+            else
+            {
+                tablename=operation;
+            }
+                std::string s;
+                int i=-1,j=0;
+                while(getline(sring,s,','))
+                {
+                    std::stringstream sri(s);//输入流
+                    while(getline(sri,s,' '))
+                    {
+                        if(!s.compare("("))
+                        {
+                            i++;
+                            places.push_back({""});
+                            places[i].pop_back();
+                        }
+                        else if(s.size()>=7&&!s.substr(0,6).compare("values"))
+                        {
+                            places.push_back({""}),i++,places[i].pop_back();
+                            auto stt=s.substr(6);
+                            sri.str("");
+                            sri.clear();
+                            sri.str(stt);
+                        }
+                        else if(s.size()>=1&&s[0]=='(')
+                        {
+                            i++;
+                            places.push_back({""});
+                            places[i].pop_back();
+                            auto stt=s.substr(1);
+                            sri.str("");
+                            sri.clear();
+                            sri.str(stt);
+                        }
+                        else if(!s.compare("values")){places.push_back({""}),i++,places[i].pop_back();}
+                        else if(!s.compare("")||!s.compare(")")||!s.compare("values")){}
+                        else 
+                        {
+                            if(s.back()==')')
+                            {
+                                s.pop_back();
+                            }
+                            places[i].emplace_back(s);
+                        }
+                    }
+                }
+            std::vector<Typee> typ = {{"int", "", normal}};
+            Table gettable(Oral_path, tablename+".table", typ, BPLUS);
+            gettable.InsertToPlace(places);
+            gettable.showTable();
         }
         else if (operation == "create")
         {
-
-        }        
+            sring << recvbuf;
+            sring >> operation;
+            if(!operation.compare("table"))
+            {
+                sring >> tablename; //分离出tablename，再将字符串传给createtable
+                std::vector<Typee> cirr;
+                cirr=create_table(recvbuf,cirr);
+                Table gettable(Oral_path,tablename+".table",cirr,BPLUS);
+                gettable.showTable();
+                std::vector<std::string> typee;
+                for(auto cir:cirr)
+                {
+                    typee.push_back(cir.id);
+                }
+                Index *index = new Index(tablename,3,typee);
+                index->showBtreeByLeftAndWrite();
+                gettable.WriteInBinary();
+            }
+            else
+            {
+                sring>>tablename;
+                mkdir(tablename.c_str(),0777);
+            }
+        }
         else if(operation == "select")
         {
             const std::map<std::string,int> LocalMap={{">",1},{"<",-1},{"=",0}};
@@ -47,113 +132,83 @@ public:
             }
             int need=LocalMap.at(cond[1]);
             std::vector<Typee> typ = {{"int", "", normal}};
-            Table gettable(tablename, tablename+".table", typ, AVL);
+            Table gettable(Oral_path, tablename+".table", typ, AVL);
             gettable.ReadInBinary();
-            gettable.search(cond[2],need,column,cond[0]);
+            if(gettable.search(cond[2],need,column,cond[0]).size()!=0)
+            gettable.showTable();
+        }        
+        else if(operation == "delete")
+        {
+            const std::map<std::string,int> LocalMap={{">",1},{"<",-1},{"=",0}};
+            std::string column; //记录被选择的column名称，为*代表全选
+            std::string word; //保存流读取的当前字符串
+            std::vector<std::string> cond;//存储条件操作所用字符串，cond(0)为匹配列名，cond(1)为匹配符号，cond(2)匹配常数值
+
+            int i = 1; //记录当前为第几个字符串
+            while(sring >> word){
+                if(i == 1)column = "*";
+                else if(i == 2)tablename = word;
+                else if(i >= 4 && i <= 6)cond.push_back(word);
+                ++ i ;
+            }
+            int need=LocalMap.at(cond[1]);
+            std::vector<Typee> typ = {{"int", "", normal}};
+            Table gettable(Oral_path, tablename+".table", typ, AVL);
+            gettable.ReadInBinary();
+            gettable.delect(cond[2],need,column,cond[0]);
             gettable.showTable();
         }
-
-    }; 
-    //输入样例create table person (id int primary,name string)
-    //默认逗号间无空格，空格只可能出现在一个列名每个属性（id/int/primary都叫属性）之间
-    void create_table(std::string tablename, std::string value)
-    {
-        int cnt = strlen("create table") + tablename.size() + 3; //跳到“（”位置后面一格，即开始读入
-        std::vector<Typee> table_info;                           // create_table用，(id int primary, name string)
-        std::string tmp;                                         //存访typee中的一个,比如id
-
-        while (value[cnt] != ')')
+        else if(operation == "use")
         {
-            int count = 0; //代表第i个属性
-            Typee ttype;   //临时储存一个列名的三个属性
-
-            int i = 0;
-            while (value[cnt] == '"')
-                cnt++; //如果是字符串，去掉原本字符串起始的“符号
-            while (value[cnt] != ',' && value[cnt] != '"' && value[cnt] != ')' && value[cnt] != ' ')
-            { //判断结束位置
-                tmp[i++] = value[cnt++];
-            }
-            if (value[cnt] == '"')
-                cnt++;
-            std::cout<<value[cnt-2]<<value[cnt-1]<<value[cnt];
-            if (value[cnt] == ' ')
+            sring >>tablename;
+            sring >>tablename;
+            Oral_path=tablename;
+        }
+        else if(operation == "drop")
+        {
+            sring >> operation;
+            sring >>tablename;
+            if(operation == "table")
             {
-                if (count == 0)
-                    ttype.id = tmp;
-                else
-                    ttype.type = tmp; //只可能count == 1
-                count++;
+                remove_file(Oral_path,tablename);
             }
-
-            if (value[cnt] == ',')
+            else
             {
-                if (count == 1)
-                    table_info.push_back(ttype);
-                if (count == 2)
-                {
-                    if (tmp[0] == '1')
-                    {
-                        ttype.Restrict = Primary_KY;
-                    }
-                    table_info.push_back(ttype);
-                }
-                cnt++;
-                tmp.clear();
+                remove_files("./"+tablename);
             }
         }
-    std::cout<<table_info[0].id<<table_info[0].Restrict;
-
-    } //输入样例 insert person values(1001,“peter”),默认逗号间无空格
-    void insert(std::string tablename, std::string value, std::string tab_path)
-    {
-        int cnt = tablename.size() + strlen("insert") + strlen("values") + 4; //跳到“（”位置后面一格，即开始读入
-        std::vector<std::string> value_info;
-
-        while (value[cnt] != ')')
+        else if(operation == "exit")
         {
-            std::string tmp; //存访读入信息中的一个,比如1001
-            int i = 0;
-            while (value[cnt] == '"')
-                cnt++; //去掉原本字符串起始的“符号
-            while (value[cnt] != ',' && value[cnt] != '"' && value[cnt] != ')')
-            { //判断结束位置
-                tmp[i++] = value[cnt++];
-            }
-            value_info.push_back(tmp);
-            if (value[cnt] == '"')
-                cnt++;
-            if (value[cnt] == ',')
-                cnt++;
+            return false;
         }
-
-        std::vector<Typee> type = {{"int", "", normal}};
-        Table gettable(tab_path,tablename, type,0);
-        gettable.InsertToTail(value_info);
+        return true;
     }
 private:
-    std::string tab_path;
+    std::string Oral_path="";
 };
 static void* client_thread(void *arg)
 {
     int recvlen = 0;
     char recvbuf[1024] = "";
     long connfd = (long)arg;
+    dbms_far dms;
     while((recvlen = recv(connfd,recvbuf,sizeof(recvbuf),0))>0)
     {
         std::cout<<"recv_buf:"<<recvbuf<<recvlen<<std::endl;
         std::mutex mut;
-        mut.lock();
         send(connfd, recvbuf, recvlen, 0);
-        dbms_far dms;
-        if(dms.eventLoop(recvbuf))     
+        mut.lock();
+        std::string al(recvbuf);
+        if(dms.eventLoop(al))     
         {
-            
+            memset(recvbuf,'\0',1024);
+            std::cout<<">>";
         }   
         mut.unlock();
     }
     std::cout<<"client closed"<<recvbuf<<std::endl;
     close(connfd);
+    nums--;
     return NULL;
 }
 
@@ -203,7 +258,7 @@ int do_do()
     char cli_ip[INET_ADDRSTRLEN] = "";
     inet_ntop(AF_INET, &client.sin_addr, cli_ip, INET_ADDRSTRLEN);
     std::cout<<"----------------------------------------------"<<std::endl;
-    printf("client ip=%s,port=%d\n", cli_ip,ntohs(client.sin_port));
+    printf("client ip=%s,port=%d,nums=%d\n", cli_ip,ntohs(client.sin_port),++nums);
 
     pthread_create(&thread_id,NULL,&client_thread,(void*)connfd);
     pthread_detach(thread_id);//线程分离，结束时自动回收线程
@@ -213,8 +268,26 @@ int do_do()
 }
 int main()
 {
+    std::cout <<"enter the type you want to get"<<std::endl;
+    std::cout <<"1 for far connect and 0 for local connect"<<std::endl;
+    std::cout <<"< ";
     int want_farconn=0;
-    std::cin>>want_farconn;
+    scanf("%d",&want_farconn);
+    fflush(stdin);
     if(want_farconn)
         do_do();
+    else
+    {
+        int recvlen = 0;
+        char recvbuf[1024] = "";
+        cin.getline(recvbuf,1024);
+        dbms_far dms;
+        std::string recvs(recvbuf);
+        while(dms.eventLoop(recvs))     
+            {
+                std::cout<<"< ";
+                cin.getline(recvbuf,1024);
+                recvs.assign(recvbuf);
+            }   
+    }
 }
