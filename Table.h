@@ -122,7 +122,7 @@ public:
       for(auto pla:place){
          for(auto Col:Column_Info)
             {
-               if(Col.id==pla)
+               if(!Col.id.compare(pla))
                {
                   irr[i]=irf[j];
                }
@@ -412,8 +412,7 @@ public:
       {
          col.Columns.clear();
       }
-      Column_Info.pop_back();
-      Column_Info.pop_back();
+      Column_Info.resize(1);
       ReadInBinary();
       for(auto ve:vec)
       {
@@ -668,11 +667,11 @@ private:
    {
       if(type.compare("int"))
       {
-         return operators!=0?((atoll(left_value.c_str())-atoll(right_value.c_str()))*operators)>0:(left_value==right_value);
+         return operators!=0?((atoll(left_value.c_str())-atoll(right_value.c_str()))*operators)>0:!(left_value==right_value);
       }
       else
       {
-         return !operators?(left_value.compare(right_value))*operators:(left_value==right_value);
+         return !operators?(left_value.compare(right_value))*operators:!(left_value==right_value);
       }
    }
    int tree_type = AVL;

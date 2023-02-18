@@ -21,10 +21,10 @@ public:
     bool eventLoop(std::string& recvbuf)
     {
         //create table Persons ( Id_P int primary, LastName string , FirstName string , Address string , City string ) 
-        //select books from stud where books > 7777
-        //insert into stud ( buok , books ) values ( jack , 25 ) , ( back , 28 ) , ( hek , 24 )
+        //select Id_P from Persons where Id_P = 25
+        //insert into Persons ( Id_P , LastName ) values ( 25 , jack ) , ( 28 , hek ) , ( 24 , hello )
         //select books from stud where books = 25
-        //delete from stud where books > 77777
+        //delete from Persons where Id_P = 25
         //std::string recvbuf = "drop table Person";
         std::string operation;//操作名称
         std::string tablename="stud";
@@ -176,6 +176,10 @@ public:
             {
                 remove_files("./"+tablename);
             }
+        }
+        else if(operation == "quit")
+        {
+            exit(0);
         }
         else if(operation == "exit")
         {

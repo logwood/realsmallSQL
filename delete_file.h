@@ -8,10 +8,9 @@
 #include <vector>
 void remove_file (std::string oral_path,std::string tablename)
 {
-    remove((oral_path+"/"+tablename).c_str());
+    remove((oral_path+"/"+tablename+".table").c_str());
     remove(("idx/"+tablename).c_str());
     remove(("Bplustree/idx/"+tablename).c_str());
-    remove(oral_path.c_str());
 }
 std::vector<std::string> remove_files(std::string dir_name){
     std::vector<std::string> result;

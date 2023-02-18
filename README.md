@@ -93,6 +93,8 @@ file
 ├── service.cc
 ├── /othertables/
 │  └── XXX.table
+├── trash
+│  └── testDBMS
 ```
 
 ### 支持的功能
@@ -117,7 +119,7 @@ create table <table-name> (
 drop table <table-name>
 
 ```
-### DML
+#### DML
 ```sql
 -- 根据条件（如果有）查询表
 
@@ -137,7 +139,7 @@ insert <table> values (<const-value>[, <const-value>…])
 
 insert <table> into (<column>[,<column>]) values (<const-value>[, <const-value>…])
 ```
-### DCL
+#### DCL
 ```sql
 
 -- 连接数据库，只在listener中使用。
